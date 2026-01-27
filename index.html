@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GeoMind | AI Geologist</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- Tailwind Config -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        obsidian: {
+                            950: '#0c0a09', 
+                            900: '#1c1917', 
+                            800: '#292524', 
+                            700: '#44403c', 
+                        },
+                        magma: {
+                            500: '#f59e0b',
+                            600: '#d97706',
+                            glow: 'rgba(217, 119, 6, 0.5)'
+                        }
+                    },
+                    animation: {
+                        'fade-in': 'fadeIn 0.3s ease-out forwards',
+                    },
+                    keyframes: {
+                        fadeIn: {
+                            '0%': { opacity: '0', transform: 'translateY(10px)' },
+                            '100%': { opacity: '1', transform: 'translateY(0)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- External CSS -->
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body class="h-screen flex overflow-hidden selection:bg-magma-600 selection:text-white">
+
+    <!-- Main Content Area -->
+    <main class="flex-1 flex flex-col relative h-full bg-transparent">
+        
+        <!-- Chat Container -->
+        <div id="chat-container" class="flex-1 overflow-y-auto custom-scroll p-4 md:p-8 flex flex-col items-center">
+            
+            <!-- Empty State / Welcome -->
+            <div id="welcome-screen" class="flex flex-col items-center justify-center h-full max-w-2xl text-center space-y-4 animate-fade-in">
+                <!-- Logo Removed -->
+                <div>
+                    <h1 class="text-4xl font-bold text-white mb-2 tracking-tight">Where Curiosity Meets Bedrock</h1>
+                    <p class="text-gray-400">Your AI-powered geological companion.</p>
+                </div>
+                <!-- Suggestions Removed -->
+            </div>
+
+            <!-- Messages List -->
+            <div id="chat-messages" class="w-full max-w-3xl space-y-6 hidden pb-32 pt-10">
+                <!-- Dynamic messages go here -->
+            </div>
+        </div>
+
+        <!-- Input Area -->
+        <div class="w-full flex-shrink-0 bg-gradient-to-t from-obsidian-950/90 via-obsidian-900/80 to-transparent pt-10 pb-6 px-4">
+            <div class="max-w-3xl mx-auto relative">
+                <form id="chat-form" class="relative group">
+                    <div class="absolute inset-0 bg-magma-500 rounded-2xl blur opacity-0 group-focus-within:opacity-10 transition-opacity duration-500"></div>
+                    <textarea 
+                        id="user-input" 
+                        rows="1"
+                        class="w-full bg-obsidian-800/80 backdrop-blur-md text-white rounded-2xl pl-4 pr-14 py-4 focus:outline-none focus:ring-1 focus:ring-magma-500/50 border border-obsidian-700/50 shadow-2xl resize-none overflow-hidden placeholder-gray-500"
+                        placeholder="Ask anything about geology..."
+                        oninput="this.style.height = ''; this.style.height = this.scrollHeight + 'px'"
+                        onkeydown="if(event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); this.form.dispatchEvent(new Event('submit')); }"
+                    ></textarea>
+                    
+                    <button type="submit" class="absolute right-2 bottom-2.5 p-2 bg-magma-600 hover:bg-magma-500 text-white rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-lg">
+                        <i data-lucide="arrow-up" class="w-5 h-5"></i>
+                    </button>
+                </form>
+                <p class="text-center text-xs text-gray-600 mt-3">GeoMind can make mistakes. Verify important geological data.</p>
+            </div>
+        </div>
+    </main>
+
+    <!-- External JavaScript -->
+    <script src="script.js"></script>
+</body>
+</html>
