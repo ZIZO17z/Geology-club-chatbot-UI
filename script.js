@@ -2,7 +2,7 @@ lucide.createIcons();
 
 // Configuration
 // Pointing to your local Python Backend
-const API_URL = "http://localhost:8000/chat";
+const API_URL = "https://zizo17z-geology-professor.hf.space";
 
 // Chat History Memory (To support context)
 let conversationHistory = [];
