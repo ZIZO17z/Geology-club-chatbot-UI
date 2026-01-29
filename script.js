@@ -1,10 +1,11 @@
+// Initialize Icons
 lucide.createIcons();
 
-// Configuration
-// Pointing to your local Python Backend
-const API_URL = "https://miaaiassistant-geology-professor.hf.space";
+// --- CONFIGURATION ---
+// FIX 1: Added "/chat" to the end of the URL. This is critical!
+const API_URL = "https://miaaiassistant-geology-professor.hf.space/chat";
 
-// Chat History Memory (To support context)
+// Chat History Memory
 let conversationHistory = [];
 
 // DOM Elements
@@ -14,6 +15,7 @@ const welcomeScreen = document.getElementById('welcome-screen');
 const chatMessages = document.getElementById('chat-messages');
 const chatForm = document.getElementById('chat-form');
 
+// Function to create HTML for messages
 const createMessageElement = (content, isUser) => {
     const div = document.createElement('div');
     div.className = `flex gap-4 md:gap-6 animate-fade-in ${isUser ? 'flex-row-reverse' : ''}`;
@@ -26,7 +28,7 @@ const createMessageElement = (content, isUser) => {
     let formattedContent = content;
     if (!isUser) {
         formattedContent = content
-            // Bold conversion
+            // Bold conversion (**text** -> <strong>text</strong>)
             .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
             // Code block conversion (simple)
             .replace(/```([\s\S]*?)```/g, '<pre class="bg-obsidian-800 p-2 rounded my-2 overflow-x-auto"><code>$1</code></pre>')
@@ -47,6 +49,7 @@ const createMessageElement = (content, isUser) => {
     return div;
 };
 
+// Handle Form Submit
 chatForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     const text = userInput.value.trim();
@@ -92,9 +95,9 @@ chatForm.addEventListener('submit', async (e) => {
             headers: {
                 "Content-Type": "application/json"
             },
-            // Send message AND history to Python
+            // FIX 2: Changed "message" to "question" to match Python backend
             body: JSON.stringify({
-                "message": text,
+                "question": text,
                 "history": conversationHistory 
             })
         });
@@ -106,23 +109,27 @@ chatForm.addEventListener('submit', async (e) => {
         const data = await response.json();
         
         // Remove Loader
-        document.getElementById(loadingId).remove();
+        const loader = document.getElementById(loadingId);
+        if(loader) loader.remove();
 
+        // FIX 3: Changed "data.response" to "data.answer"
+        const aiText = data.answer; 
+        
         // 6. Display AI Response
-        // The backend returns { "response": "..." }
-        const aiText = data.response; 
         chatMessages.appendChild(createMessageElement(aiText, false));
 
         // 7. Update History Memory
-        conversationHistory.push({ role: "Student", content: text });
-        conversationHistory.push({ role: "Professor", content: aiText });
+        // We push plain text to history to keep it simple for the backend
+        conversationHistory.push(text); 
+        conversationHistory.push(aiText);
 
     } catch (err) {
         const loader = document.getElementById(loadingId);
         if(loader) loader.remove();
-        chatMessages.appendChild(createMessageElement(`⚠️ Connection Error: Is the backend running? (${err.message})`, false));
+        chatMessages.appendChild(createMessageElement(`⚠️ Connection Error: ${err.message}`, false));
     }
     
+    // Refresh icons and scroll
     lucide.createIcons();
     chatContainer.scrollTo({ top: chatContainer.scrollHeight, behavior: 'smooth' });
 });
