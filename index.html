@@ -5,102 +5,74 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GeoMind | AI Geologist</title>
     
-    <!-- Tailwind CSS -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
-    
-    <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
-    
-    <!-- Lucide Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@700&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest"></script>
-
-    <!-- Tailwind Config -->
+    
     <script>
         tailwind.config = {
             theme: {
                 extend: {
-                    fontFamily: {
-                        sans: ['Inter', 'sans-serif'],
-                        mono: ['JetBrains Mono', 'monospace'],
-                    },
+                    fontFamily: { sans: ['Inter', 'sans-serif'], mono: ['JetBrains Mono', 'monospace'] },
                     colors: {
-                        obsidian: {
-                            950: '#0c0a09', 
-                            900: '#1c1917', 
-                            800: '#292524', 
-                            700: '#44403c', 
-                        },
-                        magma: {
-                            500: '#f59e0b',
-                            600: '#d97706',
-                            glow: 'rgba(217, 119, 6, 0.5)'
-                        }
-                    },
-                    animation: {
-                        'fade-in': 'fadeIn 0.3s ease-out forwards',
-                    },
-                    keyframes: {
-                        fadeIn: {
-                            '0%': { opacity: '0', transform: 'translateY(10px)' },
-                            '100%': { opacity: '1', transform: 'translateY(0)' },
-                        }
+                        obsidian: { 950: '#0c0a09', 900: '#1c1917', 800: '#292524', 700: '#44403c' },
+                        magma: { 500: '#f59e0b', 600: '#d97706' }
                     }
                 }
             }
         }
     </script>
-
-    <!-- External CSS -->
     <link rel="stylesheet" href="styles.css">
 </head>
-<body class="h-screen flex overflow-hidden selection:bg-magma-600 selection:text-white">
+<body class="h-screen flex flex-col selection:bg-magma-600/30">
 
-    <!-- Main Content Area -->
-    <main class="flex-1 flex flex-col relative h-full bg-transparent">
-        
-        <!-- Chat Container -->
-        <div id="chat-container" class="flex-1 overflow-y-auto custom-scroll p-4 md:p-8 flex flex-col items-center">
-            
-            <!-- Empty State / Welcome -->
-            <div id="welcome-screen" class="flex flex-col items-center justify-center h-full max-w-2xl text-center space-y-4 animate-fade-in">
-                <!-- Logo Removed -->
-                <div>
-                    <h1 class="text-4xl font-bold text-white mb-2 tracking-tight">Where Curiosity Meets Bedrock</h1>
-                    <p class="text-gray-400">Your AI-powered geological companion.</p>
+    <audio id="bg-sound" src="sound.mp3" preload="auto"></audio>
+
+    <div id="preloader">
+        <div class="loader-ring"></div>
+        <div id="progress-container"><div id="progress-bar"></div></div>
+        <div class="text-center mt-6">
+            <h2 class="text-3xl font-black tracking-tighter text-white mb-1">GEOMIND</h2>
+            <p class="text-magma-500 font-mono text-xs tracking-[0.3em] uppercase">System Initialization</p>
+        </div>
+        <div id="boot-log">Click anywhere to begin...</div>
+    </div>
+
+    <canvas id="fw-canvas"></canvas>
+
+    <main class="flex-1 flex flex-col relative h-full overflow-hidden z-10">
+        <div id="chat-container" class="flex-1 overflow-y-auto p-4 md:p-8 flex flex-col space-y-6 scroll-smooth">
+            <div id="welcome-screen" class="flex flex-col items-center justify-center h-full text-center mt-10">
+                <div class="relative group">
+                    <div class="absolute -inset-1 bg-gradient-to-r from-magma-600 to-obsidian-700 rounded-3xl blur opacity-25 group-hover:opacity-50 transition duration-1000"></div>
+                    <img src="logo.jpg" id="main-logo" class="clickable-firework relative w-40 h-40 rounded-3xl object-cover border border-white/10 shadow-2xl mb-8 transform transition hover:scale-105 duration-500">
                 </div>
-                <!-- Suggestions Removed -->
+                <h1 class="text-5xl font-black text-white tracking-tighter mb-2">GeoMind AI</h1>
+                <p class="text-stone-400 font-medium mb-6">Your Field Assistant for <span class="text-magma-500">Geology & Stratigraphy</span></p>
+                <div class="flex gap-2 text-xs font-mono text-stone-500">
+                    <span class="bg-obsidian-800 px-3 py-1 rounded border border-white/5">Try: "Summarize Ch 4"</span>
+                    <span class="bg-obsidian-800 px-3 py-1 rounded border border-white/5">Try: "Quiz me on Volcanoes"</span>
+                </div>
             </div>
-
-            <!-- Messages List -->
-            <div id="chat-messages" class="w-full max-w-3xl space-y-6 hidden pb-32 pt-10">
-                <!-- Dynamic messages go here -->
-            </div>
+            <div id="chat-messages" class="w-full max-w-4xl mx-auto flex flex-col space-y-6 hidden pb-32"></div>
         </div>
 
-        <!-- Input Area -->
-        <div class="w-full flex-shrink-0 bg-gradient-to-t from-obsidian-950/90 via-obsidian-900/80 to-transparent pt-10 pb-6 px-4">
-            <div class="max-w-3xl mx-auto relative">
-                <form id="chat-form" class="relative group">
-                    <div class="absolute inset-0 bg-magma-500 rounded-2xl blur opacity-0 group-focus-within:opacity-10 transition-opacity duration-500"></div>
-                    <textarea 
-                        id="user-input" 
-                        rows="1"
-                        class="w-full bg-obsidian-800/80 backdrop-blur-md text-white rounded-2xl pl-4 pr-14 py-4 focus:outline-none focus:ring-1 focus:ring-magma-500/50 border border-obsidian-700/50 shadow-2xl resize-none overflow-hidden placeholder-gray-500"
-                        placeholder="Ask anything about geology..."
-                        oninput="this.style.height = ''; this.style.height = this.scrollHeight + 'px'"
-                        onkeydown="if(event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); this.form.dispatchEvent(new Event('submit')); }"
-                    ></textarea>
-                    
-                    <button type="submit" class="absolute right-2 bottom-2.5 p-2 bg-magma-600 hover:bg-magma-500 text-white rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-lg">
-                        <i data-lucide="arrow-up" class="w-5 h-5"></i>
-                    </button>
+        <div class="w-full bg-gradient-to-t from-obsidian-950 via-obsidian-950/95 to-transparent pb-8 pt-4 px-4 z-50">
+            <div class="max-w-4xl mx-auto relative">
+                <form id="chat-form" class="relative"> 
+                    <div class="flex items-end bg-obsidian-800/80 backdrop-blur-xl rounded-3xl border border-obsidian-700 shadow-2xl overflow-hidden focus-within:border-magma-500/50 transition-all duration-300">
+                        <textarea id="user-input" rows="1" class="w-full bg-transparent text-white p-5 focus:outline-none resize-none text-lg max-h-32 placeholder-stone-600" placeholder="Type 'Guide' for help or ask a question..."></textarea>
+                        <button id="send-btn" type="submit" class="m-3 p-3 bg-magma-600 hover:bg-magma-500 text-obsidian-950 rounded-2xl transition-all active:scale-95 disabled:opacity-50">
+                            <i data-lucide="send" class="w-6 h-6"></i>
+                        </button>
+                    </div>
                 </form>
-                <p class="text-center text-xs text-gray-600 mt-3">GeoMind can make mistakes. Verify important geological data.</p>
+                <p class="text-center mt-3 text-[10px] text-stone-600 font-mono uppercase tracking-widest">GeoMind v2.1 | Academic Assistant</p>
             </div>
         </div>
     </main>
 
-    <!-- External JavaScript -->
     <script src="script.js"></script>
 </body>
 </html>

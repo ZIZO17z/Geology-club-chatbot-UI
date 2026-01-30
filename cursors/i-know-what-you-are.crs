@@ -1,0 +1,51 @@
+﻿[Arrow]
+Path='w' cursor!.cur
+
+[SizeNESW]
+Path='w' ^-v-.cur
+
+[SizeNS]
+Path='w' up or down---.cur
+
+[SizeNWSE]
+Path='w' ^-v-.cur
+
+[No]
+Path='w' error pout.cur
+
+[Pin]
+Path='w' location where to-.cur
+
+[Person]
+Path='w' person who-.cur
+
+[Hand]
+Path='w' click!!! the circles to beat.cur
+
+[AppStarting]
+Path='w' working in background woah im dizzy @w@.ani
+
+[Wait]
+Path='w' busy donut disc.ani
+
+[SizeAll]
+Path='w' move.cur
+
+[NWPen]
+Path='w' pencil.cur
+
+[IBeam]
+Path='w' text select.cur
+
+[UpArrow]
+Path='w' alternate select 1.cur
+
+[Help]
+Path='w' help select let him cook.cur
+
+[SizeWE]
+Path='w' left or right--.cur
+
+[Crosshair]
+Path='w' preciseeee.cur
+

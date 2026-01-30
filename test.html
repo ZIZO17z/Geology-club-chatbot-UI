@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GeoMind | AI Geologist</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'], mono: ['JetBrains Mono', 'monospace'] },
+                    colors: {
+                        obsidian: { 950: '#0c0a09', 900: '#1c1917', 800: '#292524', 700: '#44403c' },
+                        magma: { 500: '#f59e0b', 600: '#d97706' }
+                    },
+                    animation: {
+                        'pulse-fast': 'pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        /* === CORE UI === */
+        body {
+            background-color: #0c0a09;
+            color: #e7e5e4;
+            overflow: hidden; /* Prevent scrolling during load */
+        }
+        
+        /* === SCROLLBAR === */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #0c0a09; }
+        ::-webkit-scrollbar-thumb { background: #292524; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #f59e0b; }
+
+        /* === PRELOADER SYSTEM === */
+        #preloader {
+            position: fixed;
+            inset: 0;
+            background: #0c0a09;
+            z-index: 10000;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            transition: opacity 0.8s ease-out, transform 0.8s ease-out;
+        }
+
+        /* Cool glowing ring for loader */
+        .loader-ring {
+            width: 120px;
+            height: 120px;
+            border: 4px solid rgba(245, 158, 11, 0.1);
+            border-top: 4px solid #f59e0b;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            box-shadow: 0 0 30px rgba(245, 158, 11, 0.2);
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        #progress-container {
+            width: 300px;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 2px;
+            overflow: hidden;
+            margin-top: 40px;
+        }
+
+        #progress-bar {
+            width: 0%;
+            height: 100%;
+            background: #f59e0b;
+            box-shadow: 0 0 20px #f59e0b;
+            transition: width 0.1s linear;
+        }
+
+        #boot-log {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            color: #44403c;
+            margin-top: 1rem;
+            height: 20px;
+        }
+
+        /* === CHAT UI === */
+        .msg-user { 
+            background: #292524; 
+            border: 1px solid #44403c; 
+            padding: 1rem; 
+            border-radius: 1.25rem; 
+            max-width: 80%; 
+            align-self: flex-end;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+        .msg-ai { 
+            background: rgba(245, 158, 11, 0.05); 
+            border: 1px solid rgba(245, 158, 11, 0.15); 
+            padding: 1.5rem; 
+            border-radius: 1.25rem; 
+            max-width: 85%; 
+            align-self: flex-start;
+            line-height: 1.6;
+        }
+
+        /* Markdown Styles */
+        .msg-ai strong { color: #fbbf24; font-weight: 700; }
+        .msg-ai h1, .msg-ai h2, .msg-ai h3 { color: #f59e0b; font-weight: 700; margin-top: 1rem; margin-bottom: 0.5rem; }
+        .msg-ai ul { list-style-type: disc; margin-left: 1.5rem; margin-bottom: 1rem; color: #d6d3d1; }
+        .msg-ai ol { list-style-type: decimal; margin-left: 1.5rem; margin-bottom: 1rem; color: #d6d3d1; }
+        .msg-ai p { margin-bottom: 0.75rem; }
+        
+        /* Fade In Animation */
+        .animate-fade-in { animation: fadeIn 0.4s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; opacity: 0; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        #fw-canvas { position: fixed; inset: 0; pointer-events: none; z-index: 50; }
+    </style>
+</head>
+<body class="h-screen flex flex-col">
+
+    <audio id="bg-sound" src="sound.mp3" preload="auto"></audio>
+
+    <div id="preloader">
+        <div class="loader-ring"></div>
+        <div id="progress-container">
+            <div id="progress-bar"></div>
+        </div>
+        <div class="text-center mt-6">
+            <h2 class="text-3xl font-black tracking-tighter text-white mb-1">GEOMIND</h2>
+            <p class="text-magma-500 font-mono text-xs tracking-[0.3em] uppercase">System Initialization</p>
+        </div>
+        <div id="boot-log">Loading Core Modules...</div>
+    </div>
+
+    <canvas id="fw-canvas"></canvas>
+
+    <main class="flex-1 flex flex-col relative h-full overflow-hidden z-10">
+        <div id="chat-container" class="flex-1 overflow-y-auto p-4 md:p-8 flex flex-col space-y-6 scroll-smooth">
+            
+            <div id="welcome-screen" class="flex flex-col items-center justify-center h-full text-center mt-10">
+                <div class="relative group">
+                    <div class="absolute -inset-1 bg-gradient-to-r from-magma-600 to-obsidian-700 rounded-3xl blur opacity-25 group-hover:opacity-50 transition duration-1000"></div>
+                    <img src="logo.jpg" class="relative w-40 h-40 rounded-3xl object-cover border border-white/10 shadow-2xl mb-8 transform transition hover:scale-105 duration-500">
+                </div>
+                
+                <h1 class="text-5xl font-black text-white tracking-tighter mb-2">GeoMind AI</h1>
+                <p class="text-stone-400 font-medium mb-6">Your Field Assistant for <span class="text-magma-500">Geology & Stratigraphy</span></p>
+                
+                <div class="flex gap-3 text-xs font-mono text-stone-600 uppercase tracking-widest">
+                    <span class="px-3 py-1 border border-stone-800 rounded-full">Llama 3.1</span>
+                    <span class="px-3 py-1 border border-stone-800 rounded-full">Vector DB Active</span>
+                </div>
+            </div>
+
+            <div id="chat-messages" class="w-full max-w-4xl mx-auto flex flex-col space-y-6 hidden pb-4"></div>
+        </div>
+
+        <div class="w-full bg-gradient-to-t from-obsidian-950 via-obsidian-950/95 to-transparent pb-8 pt-4 px-4 z-50">
+            <div class="max-w-4xl mx-auto relative">
+                <form id="chat-form" onsubmit="return false;"> 
+                    <div class="flex items-end bg-obsidian-800/80 backdrop-blur-xl rounded-3xl border border-obsidian-700 shadow-2xl overflow-hidden focus-within:border-magma-500/50 transition-all duration-300 hover:border-obsidian-600">
+                        <button type="button" class="p-5 text-gray-500 hover:text-magma-500 transition-colors">
+                            <i data-lucide="paperclip"></i>
+                        </button>
+                        <textarea id="user-input" rows="1" class="w-full bg-transparent text-white py-5 focus:outline-none resize-none text-lg max-h-32 placeholder-stone-600" placeholder="Ask about rock formations, minerals, or club news..."></textarea>
+                        <button id="send-btn" type="button" class="absolute right-3 bottom-3 p-3 bg-magma-600 hover:bg-magma-500 text-obsidian-950 font-bold rounded-2xl transition-all active:scale-90 shadow-lg shadow-magma-500/20">
+                            <i data-lucide="send" class="w-6 h-6"></i>
+                        </button>
+                    </div>
+                </form>
+                <div class="text-center mt-3">
+                    <p class="text-[10px] text-stone-600 font-mono">GEOMIND v2.0 | AI MAY HALLUCINATE | VERIFY WITH TEXTBOOK</p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        const preloader = document.getElementById('preloader');
+        const progressBar = document.getElementById('progress-bar');
+        const bootLog = document.getElementById('boot-log');
+        const bgSound = document.getElementById('bg-sound');
+        
+        const sendBtn = document.getElementById('send-btn');
+        const userInput = document.getElementById('user-input');
+        const chatMessages = document.getElementById('chat-messages');
+        const welcomeScreen = document.getElementById('welcome-screen');
+        const chatContainer = document.getElementById('chat-container');
+
+        // --- AUTOMATIC LOADING SEQUENCE (3 Seconds) ---
+        window.addEventListener('load', () => {
+            
+            // 1. Try to play sound (Browsers might block this without click)
+            bgSound.volume = 0.4;
+            bgSound.play().catch(e => console.log("Audio autoplay blocked by browser policy."));
+
+            let progress = 0;
+            const totalTime = 3000; // 3 Seconds
+            const intervalTime = 30;
+            const increment = 100 / (totalTime / intervalTime);
+            
+            const logs = [
+                "Mounting File System...",
+                "Loading Vector Database...",
+                "Calibrating Llama 3.1 Model...",
+                "Connecting to Localhost:8000...",
+                "Establishing Neural Link..."
+            ];
+
+            const timer = setInterval(() => {
+                progress += increment;
+                
+                // Update Progress Bar
+                progressBar.style.width = Math.min(progress, 100) + "%";
+
+                // Update Text Logs based on progress
+                if (progress < 20) bootLog.innerText = logs[0];
+                else if (progress < 40) bootLog.innerText = logs[1];
+                else if (progress < 60) bootLog.innerText = logs[2];
+                else if (progress < 80) bootLog.innerText = logs[3];
+                else bootLog.innerText = logs[4];
+
+                if (progress >= 100) {
+                    clearInterval(timer);
+                    // Fade out
+                    preloader.style.opacity = "0";
+                    preloader.style.transform = "scale(1.05)";
+                    setTimeout(() => {
+                        preloader.style.display = "none";
+                        // Stop sound smoothly
+                        const fadeAudio = setInterval(() => {
+                            if(bgSound.volume > 0.05) bgSound.volume -= 0.05;
+                            else { clearInterval(fadeAudio); bgSound.pause(); }
+                        }, 100);
+                    }, 800);
+                }
+            }, intervalTime);
+        });
+
+        // --- CHAT LOGIC ---
+        let chatHistory = []; 
+
+        const handleChat = async () => {
+            const text = userInput.value.trim();
+            if (!text) return;
+
+            // UI Updates
+            welcomeScreen.classList.add('hidden');
+            chatMessages.classList.remove('hidden');
+            userInput.value = '';
+            userInput.style.height = 'auto';
+
+            // 1. Add User Message
+            const uMsg = document.createElement('div');
+            uMsg.className = "msg-user animate-fade-in";
+            uMsg.innerText = text;
+            chatMessages.appendChild(uMsg);
+            
+            // Update History
+            chatHistory.push(text);
+            scrollToBottom();
+
+            // 2. Add "Thinking" Placeholder
+            const loadingId = "loading-" + Date.now();
+            const aiLoading = document.createElement('div');
+            aiLoading.id = loadingId;
+            aiLoading.className = "msg-ai animate-fade-in flex items-center gap-3";
+            aiLoading.innerHTML = `
+                <i data-lucide="loader-2" class="animate-spin text-magma-500 w-5 h-5"></i>
+                <span class="text-magma-500 font-mono text-sm animate-pulse tracking-widest">ANALYZING STRATA...</span>
+            `;
+            chatMessages.appendChild(aiLoading);
+            lucide.createIcons();
+            scrollToBottom();
+
+            try {
+                // 3. FETCH with HISTORY
+                const response = await fetch('http://localhost:8000/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        question: text,
+                        history: chatHistory 
+                    })
+                });
+
+                if (!response.ok) throw new Error("Server Error");
+                const data = await response.json();
+                
+                // Remove Loader
+                document.getElementById(loadingId).remove();
+
+                // 4. Render AI Response
+                const aiMsg = document.createElement('div');
+                aiMsg.className = "msg-ai animate-fade-in";
+                
+                // Markdown -> HTML
+                const rawHtml = marked.parse(data.answer);
+                let contentHtml = `<div class="prose prose-invert max-w-none text-stone-300">${rawHtml}</div>`;
+
+                // 5. Source Badges Logic
+                if(data.source_documents && data.source_documents.length > 0) {
+                    let badgesHtml = `<div class="mt-6 flex flex-wrap gap-2 pt-4 border-t border-magma-500/20">`;
+                    
+                    data.source_documents.forEach(src => {
+                        if(src.toLowerCase().includes("testbank") || src.toLowerCase().includes("quiz")) {
+                            // Orange Badge (Testbank)
+                            badgesHtml += `
+                                <span class="flex items-center gap-1.5 px-3 py-1 bg-magma-500/10 border border-magma-500/40 rounded-full text-[11px] font-mono font-bold text-magma-500">
+                                    <i data-lucide="file-question" class="w-3 h-3"></i> ${src}
+                                </span>`;
+                        } else {
+                            // Blue Badge (Textbook)
+                            badgesHtml += `
+                                <span class="flex items-center gap-1.5 px-3 py-1 bg-sky-500/10 border border-sky-500/30 rounded-full text-[11px] font-mono font-bold text-sky-400">
+                                    <i data-lucide="book-open" class="w-3 h-3"></i> ${src}
+                                </span>`;
+                        }
+                    });
+                    badgesHtml += `</div>`;
+                    contentHtml += badgesHtml;
+                }
+
+                aiMsg.innerHTML = contentHtml;
+                chatMessages.appendChild(aiMsg);
+
+            } catch (error) {
+                document.getElementById(loadingId).remove();
+                const errorMsg = document.createElement('div');
+                errorMsg.className = "msg-ai border-red-900 bg-red-950/30 text-red-400";
+                errorMsg.innerHTML = `<strong class="flex items-center gap-2"><i data-lucide="alert-triangle"></i> System Failure</strong><p class="text-sm mt-2">Backend not reachable. Ensure 'uvicorn main:app' is running.</p>`;
+                chatMessages.appendChild(errorMsg);
+            }
+            
+            scrollToBottom();
+            lucide.createIcons(); // Refresh icons in new message
+        };
+
+        function scrollToBottom() {
+            chatContainer.scrollTo({ top: chatContainer.scrollHeight, behavior: 'smooth' });
+        }
+
+        // Auto-resize textarea
+        userInput.addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = (this.scrollHeight) + 'px';
+        });
+
+        // Trigger on Enter
+        sendBtn.addEventListener('click', handleChat);
+        userInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                handleChat();
+            }
+        });
+
+        // --- PARTICLE BACKGROUND ---
+        const canvas = document.getElementById('fw-canvas');
+        const ctx = canvas.getContext('2d');
+        let particles = [];
+        
+        function resize() { 
+            canvas.width = window.innerWidth; 
+            canvas.height = window.innerHeight; 
+        }
+        window.addEventListener('resize', resize); resize();
+        
+        class Particle {
+            constructor(x, y) {
+                this.x = x ? x : Math.random() * canvas.width;
+                this.y = y ? y : Math.random() * canvas.height;
+                this.size = Math.random() * 2;
+                this.speedX = (Math.random() - 0.5) * 0.5;
+                this.speedY = (Math.random() - 0.5) * 0.5;
+                this.life = 1; 
+                this.decay = 0.005;
+                this.color = Math.random() > 0.5 ? '#f59e0b' : '#44403c'; // Magma or Obsidian
+            }
+            update() { 
+                this.x += this.speedX; 
+                this.y += this.speedY; 
+                this.life -= this.decay; 
+                // Reset if dead (ambient mode)
+                if(this.life <= 0) {
+                    this.x = Math.random() * canvas.width;
+                    this.y = Math.random() * canvas.height;
+                    this.life = 1;
+                }
+            }
+            draw() { 
+                ctx.fillStyle = this.color; 
+                ctx.globalAlpha = this.life * 0.5; 
+                ctx.beginPath(); 
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2); 
+                ctx.fill(); 
+            }
+        }
+        
+        // Create initial ambient particles
+        for(let i=0; i<50; i++) particles.push(new Particle());
+
+        function animate() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            particles.forEach(p => { p.update(); p.draw(); });
+            requestAnimationFrame(animate);
+        }
+        animate();
+
+        lucide.createIcons();
+    </script>
+</body>
+</html>
